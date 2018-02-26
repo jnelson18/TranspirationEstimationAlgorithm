@@ -1,5 +1,6 @@
 # anaconda build files
 meta.yaml
+build
 
 # Executables
 *.sh
