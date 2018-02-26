@@ -8,4 +8,5 @@ setup(name='TranspirationEstimationAlgorithm',
       author='Jacob A. Nelson',
       author_email='jnelson@bgc-jena.mpg.de',
       url='https://github.com/jnelson18/TranspirationEstimationAlgorithm',
+      packages=['TEA']
      )
