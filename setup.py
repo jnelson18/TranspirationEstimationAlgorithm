@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='TranspirationEstimationAlgorithm',
-      version='0.02',
+      version='0.03',
       description='Water Flux Partitioning',
       author='Jacob A. Nelson',
       author_email='jnelson@bgc-jena.mpg.de',

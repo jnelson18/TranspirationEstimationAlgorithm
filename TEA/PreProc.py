@@ -10,10 +10,10 @@ import numpy as np
 
 from scipy.ndimage.filters import gaussian_filter
 
-from CSWI import CSWI
-from DiurnalCentroid import DiurnalCentroid
+from TEA.SWI import CSWI
+from TEA.DiurnalCentroid import DiurnalCentroid
 import DWCI
-from TEA import partition
+from TEA.TEA import partition
 
 def tempFlag(Tair):
     '''tempFlag(Tair)
