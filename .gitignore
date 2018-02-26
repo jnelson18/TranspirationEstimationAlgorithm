@@ -1,0 +1,6 @@
+# anaconda build files
+meta.yaml
+
+# Executables
+*.sh
+*.bat
