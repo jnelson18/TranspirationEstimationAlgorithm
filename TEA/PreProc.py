@@ -156,14 +156,19 @@ def QuantRegDetector(x,y,TrainingMask=None,strictness=3):
 
 def outlierCorrection(ds, n_jobs=1):
     for percentile in ds.percentiles:
-        T        = ds['TEA_T'].sel(percentiles=percentile).values.ravel()
-        xVars    = ['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI']
-        RFxs     = np.asanyarray([ds[v].values for v in xVars])
-        RFxs     = np.matrix(RFxs).T
-        Outliers = QuantRegDetector(ds.Rg.values,T)
-        Forest   = RandomForestRegressor(n_estimators=100, oob_score=True, n_jobs=n_jobs, verbose=0, warm_start=False)
-        Forest.fit(RFxs[Outliers],T[Outliers])
-        T[~Outliers] = Forest.predict(RFxs[~Outliers])
+        for CSWIlim in ds.CSWIlims:
+            T        = ds['TEA_T'].sel(percentiles=percentile,CSWIlims=CSWIlim).values
+            xVars    = ['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI']
+            for var in xVars:
+                if np.any(np.isnan(ds[var])) or np.any(ds[var]<-9000):
+                    xVars.remove(var)
+            RFxs     = np.asanyarray([ds[v].values for v in xVars])
+            RFxs     = np.matrix(RFxs).T
+            Outliers = QuantRegDetector(ds.Rg.values,T)
+            Forest   = RandomForestRegressor(n_estimators=100, oob_score=True, n_jobs=n_jobs, verbose=0, warm_start=False)
+            Forest.fit(RFxs[Outliers],T[Outliers])
+            T[~Outliers] = Forest.predict(RFxs[~Outliers])
+            ds['TEA_T'].sel(percentiles=percentile,CSWIlims=CSWIlim).values=T
 
 def tempFlag(Tair):
     '''tempFlag(Tair)
