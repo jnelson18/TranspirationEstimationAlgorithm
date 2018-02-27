@@ -158,19 +158,20 @@ def outlierCorrection(ds, n_jobs=1):
     for percentile in ds.percentiles:
         for CSWIlim in ds.CSWIlims:
             T        = ds['TEA_T'].sel(percentiles=percentile,CSWIlims=CSWIlim).values
-            xVars    = ['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI']
+            nanMask  = ~np.isnan(T) & ~np.isnan(ds.Rg.values)
+            xVars    = ds.features.split(',')
             for var in xVars:
-                if np.any(np.isnan(ds[var])) or np.any(ds[var]<-9000):
-                    xVars.remove(var)
+                nanMask[np.isnan(ds[var]] = False 
+                nanMask[ds[var]<-9000] = False  
             RFxs     = np.asanyarray([ds[v].values for v in xVars])
             RFxs     = np.matrix(RFxs).T
-            Outliers = QuantRegDetector(ds.Rg.values,T)
+            Outliers = QuantRegDetector(ds.Rg.values,T,TrainingMask=nanMask)
             if np.all(Outliers):
                 continue
             else:
                 Forest   = RandomForestRegressor(n_estimators=100, oob_score=True, n_jobs=n_jobs, verbose=0, warm_start=False)
-                Forest.fit(RFxs[Outliers],T[Outliers])
-                T[~Outliers] = Forest.predict(RFxs[~Outliers])
+                Forest.fit(RFxs[Outliers & nanMask],T[Outliers & nanMask])
+                T[~Outliers & nanMask] = Forest.predict(RFxs[~Outliers & nanMask])
                 ds['TEA_T'].sel(percentiles=percentile,CSWIlims=CSWIlim).values=T
 
 def tempFlag(Tair):
