@@ -1,6 +1,11 @@
 # anaconda build files
 meta.yaml
 build
+linux-32
+osx-64
+win-32
+win-64
+.ipynb_checkpoints
 
 # Executables
 *.sh

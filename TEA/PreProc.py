@@ -214,7 +214,7 @@ def preprocess(ds):
     ds['CSWI'] = ds['CSWI'].assign_attrs({'long name':'Conservative Surface Water Index','Units':'mm hh-1'})
     
     # convert a half hourly resolution Rg_pot into a daily Rg_pot
-    ds['Rg_pot_daily'] = np.repeat(ds.Rg_pot.values.reshape(-1,48).sum(axis=1),48)*(1800/1000000)
+    ds['Rg_pot_daily'] = (('timestamp'),np.repeat(ds.Rg_pot.values.reshape(-1,48).sum(axis=1),48)*(1800/1000000))
     ds['Rg_pot_daily'] = ds['Rg_pot_daily'].assign_attrs({'long name':'daily potential radiation','Units':'MJ m-2 d-1'})
     
     # extract year to be used as a predictor variable
