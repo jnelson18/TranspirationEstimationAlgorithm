@@ -165,10 +165,13 @@ def outlierCorrection(ds, n_jobs=1):
             RFxs     = np.asanyarray([ds[v].values for v in xVars])
             RFxs     = np.matrix(RFxs).T
             Outliers = QuantRegDetector(ds.Rg.values,T)
-            Forest   = RandomForestRegressor(n_estimators=100, oob_score=True, n_jobs=n_jobs, verbose=0, warm_start=False)
-            Forest.fit(RFxs[Outliers],T[Outliers])
-            T[~Outliers] = Forest.predict(RFxs[~Outliers])
-            ds['TEA_T'].sel(percentiles=percentile,CSWIlims=CSWIlim).values=T
+            if np.all(Outliers):
+                continue
+            else:
+                Forest   = RandomForestRegressor(n_estimators=100, oob_score=True, n_jobs=n_jobs, verbose=0, warm_start=False)
+                Forest.fit(RFxs[Outliers],T[Outliers])
+                T[~Outliers] = Forest.predict(RFxs[~Outliers])
+                ds['TEA_T'].sel(percentiles=percentile,CSWIlims=CSWIlim).values=T
 
 def tempFlag(Tair):
     '''tempFlag(Tair)
