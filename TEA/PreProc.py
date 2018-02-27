@@ -161,7 +161,7 @@ def outlierCorrection(ds, n_jobs=1):
             nanMask  = ~np.isnan(T) & ~np.isnan(ds.Rg.values)
             xVars    = ds.features.split(',')
             for var in xVars:
-                nanMask[np.isnan(ds[var]] = False 
+                nanMask[np.isnan(ds[var])] = False 
                 nanMask[ds[var]<-9000] = False  
             RFxs     = np.asanyarray([ds[v].values for v in xVars])
             RFxs     = np.matrix(RFxs).T

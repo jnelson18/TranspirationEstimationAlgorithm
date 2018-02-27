@@ -99,7 +99,7 @@ def partition(ds,percs=np.linspace(50,100,11),CSWIlims=np.array([-1]),n_jobs=1,R
     ds['oob_scores']=(('CSWIlims'),np.zeros((CSWIlims.size))-9999)
 
     for var in RFmod_vars:
-        ds['nanflag'][np.isnan(ds[var]] = np.nan 
+        ds['nanflag'][np.isnan(ds[var])] = np.nan 
         ds['nanflag'][ds[var]<-9000] = np.nan
 
     for l in range(CSWIlims.size):
