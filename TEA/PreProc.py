@@ -9,11 +9,161 @@ import xarray as xr
 import numpy as np
 
 from scipy.ndimage.filters import gaussian_filter
+from scipy.optimize import fmin
+
+from sklearn.ensemble import RandomForestRegressor
 
 from TEA.CSWI import CSWI
 from TEA.DiurnalCentroid import DiurnalCentroid
 import TEA.DWCI as DWCI
 from TEA.TEA import partition
+
+def quantreg(x,y,PolyDeg=1,rho=0.95,weights=None):
+    '''quantreg(x,y,PolyDeg=1,rho=0.95)
+
+    Quantile regression
+
+    Fits a polynomial function (of degree PolyDeg) using quantile regression based on a percentile (rho).
+    Based on script by Dr. Phillip M. Feldman, and based on method by Koenker, Roger, and
+    Gilbert Bassett Jr. “Regression Quantiles.” Econometrica: Journal of
+    the Econometric Society, 1978, 33–50.
+
+
+    Parameters
+    ----------
+    x : list or list like
+        independent variable
+    y : list or list like
+        dependent variable
+    PolyDeg : int
+        The degree of the polynomial function
+    rho : float between 0-1
+        The percentile to fit to, must be between 0-1
+    weights : list or list like
+        Vector to weight each point, must be same size as x
+
+     Returns
+    -------
+    list
+        The resulting parameters in order of degree from low to high
+    '''
+    def model(x, beta):
+       """
+       This example defines the model as a polynomial, where the coefficients of the
+       polynomial are passed via `beta`.
+       """
+       if PolyDeg == 0:
+           return x*beta
+       else:
+           return np.polyval(x, beta)
+
+    N_coefficients=PolyDeg+1
+
+    def tilted_abs(rho, x, weights):
+       """
+       OVERVIEW
+
+       The tilted absolute value function is used in quantile regression.
+
+
+       INPUTS
+
+       rho: This parameter is a probability, and thus takes values between 0 and 1.
+
+       x: This parameter represents a value of the independent variable, and in
+       general takes any real value (float) or NumPy array of floats.
+       """
+
+       return weights * x * (rho - (x < 0))
+
+    def objective(beta, rho, weights):
+       """
+       The objective function to be minimized is the sum of the tilted absolute
+       values of the differences between the observations and the model.
+       """
+       return tilted_abs(rho, y - model(x, beta), weights).sum()
+
+    # Build weights if they don't exits:
+    if weights is None:
+        weights=np.ones(x.shape)
+
+    # Define starting point for optimization:
+    beta_0= np.zeros(N_coefficients)
+    if N_coefficients >= 2:
+       beta_0[1]= 1.0
+
+    # `beta_hat[i]` will store the parameter estimates for the quantile
+    # corresponding to `fractions[i]`:
+    beta_hat= []
+
+    #for i, fraction in enumerate(fractions):
+    beta_hat.append( fmin(objective, x0=beta_0, args=(rho,weights), xtol=1e-8,
+      disp=False, maxiter=3000) )
+    return(beta_hat)
+
+
+def QuantRegDetector(x,y,TrainingMask=None,strictness=3):
+    '''QuantRegDetector(x,y,TrainingMask=None,strictness=3)
+    
+    quantile regression outlier detectior
+    
+    Uses a mixture of quantile regression and quantiles of residuals to identify outliers in y with respect to x.
+    
+
+    Parameters
+    ----------
+    x: list or list like
+        predictor variable
+    y: list or list like
+        response variable
+    TrainingMask: list or list like
+        boolean mask of data to ignore
+    strictness: integer
+        number of inter quartile ranges to use
+
+     Returns
+    -------
+    bool array
+        outliers detected
+    '''
+    x     = np.array(x)
+    y     = np.array(y)
+    index = np.arange(y.size)
+    if TrainingMask is None:
+        TrainingMask=np.ones(x.shape).astype(bool)
+    
+    if np.any(np.isnan(x)):
+        raise RuntimeError("NaN values detected in x variable")
+    if np.any(np.isnan(y)):
+        raise RuntimeError("NaN values detected in y variable")
+
+    si75 = quantreg(x[TrainingMask],y[TrainingMask],PolyDeg=0,rho=0.75)[0]
+    si25 = quantreg(x[TrainingMask],y[TrainingMask],PolyDeg=0,rho=0.25)[0]
+    si50 = quantreg(x[TrainingMask],y[TrainingMask],PolyDeg=0,rho=0.5)[0]
+
+    Q75  = x*si75[0] #+si75[0]
+    Q25  = x*si25[0] #+si25[0]
+    
+    IQrange      = np.subtract(Q75,Q25)
+    LowerBound   = Q25-strictness*IQrange #1.5
+    UpperBound   = Q75+strictness*IQrange #1.5
+    resid        = x*si50[0] - y
+    IQresid       = np.diff(np.percentile(resid,[25,75]))
+    Lowerresid   = x*si50[0]-strictness*IQresid #1.5
+    Upperresid   = x*si50[0]+strictness*IQresid #1.5
+    Outliers     = ~np.logical_or(np.logical_and(y<=UpperBound,y>=LowerBound),np.logical_and(resid<=Upperresid,resid>=Lowerresid))
+    return(~Outliers)
+
+def outlierCorrection(ds, n_jobs=1):
+    for percentile in ds.percentiles:
+        T        = ds['TEA_T'].sel(percentiles=percentile).values.ravel()
+        xVars    = ['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI']
+        RFxs     = np.asanyarray([ds[v].values for v in xVars])
+        RFxs     = np.matrix(RFxs).T
+        Outliers = QuantRegDetector(ds.Rg.values,T)
+        Forest   = RandomForestRegressor(n_estimators=100, oob_score=True, n_jobs=n_jobs, verbose=0, warm_start=False)
+        Forest.fit(RFxs[Outliers],T[Outliers])
+        T[~Outliers] = Forest.predict(RFxs[~Outliers])
 
 def tempFlag(Tair):
     '''tempFlag(Tair)
