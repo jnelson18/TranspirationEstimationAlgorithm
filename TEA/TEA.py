@@ -76,7 +76,10 @@ def RFPercentilePrediction(Forest,trainRFxs,trainRFy,predRFxs,pcts=[5,50,95],n_j
 
     return(ypred_pcts)
 
-def partition(ds,percs=np.linspace(50,100,11),CSWIlims=np.array([-1]),n_jobs=1,RFmod_vars=['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI']):
+def partition(ds,
+        percs=np.linspace(50,100,11),CSWIlims=np.array([-1]),
+        ,n_jobs=1,RFmod_vars=['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI'],
+        RandomForestRegressor_kwargs={}):
     RFxs=[ds[x].values for x in RFmod_vars]
     RFxs=np.matrix(RFxs).T
     RFxs[np.isnan(RFxs)]=-9999
@@ -108,7 +111,7 @@ def partition(ds,percs=np.linspace(50,100,11),CSWIlims=np.array([-1]),n_jobs=1,R
         ds['NumForestPoints'][l]=CurFlag.sum()
         
         if CurFlag.sum()>240:
-            Forest=RandomForestRegressor(n_estimators=100, oob_score=True, n_jobs=n_jobs, verbose=0, warm_start=False)
+            Forest=RandomForestRegressor(n_estimators=100, oob_score=True, n_jobs=n_jobs, verbose=0, warm_start=False,**RandomForestRegressor_kwargs)
             Forest.fit(RFxs[CurFlag],ds.inst_WUE.values[CurFlag])
     
             ds['oob_scores'][l]=Forest.oob_score_
