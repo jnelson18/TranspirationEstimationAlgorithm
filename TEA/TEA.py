@@ -79,9 +79,9 @@ def RFPercentilePrediction(Forest,trainRFxs,trainRFy,predRFxs,pcts=[5,50,95],n_j
 def partition(ds,
         percs=np.linspace(50,100,11),CSWIlims=np.array([-1]),
         n_jobs=1,RFmod_vars=['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI'],
-        RandomForestRegressor_kwargs={'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False}):
+        RandomForestRegressor_kwargs={'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False, 'n_jobs'=1}):
         
-    Default_RandomForestRegressor_kwargs = {'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False}
+    Default_RandomForestRegressor_kwargs = {'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False, 'n_jobs'=1}
     
     for key in Default_RandomForestRegressor_kwargs.keys():
         if key not in RandomForestRegressor_kwargs.keys():
