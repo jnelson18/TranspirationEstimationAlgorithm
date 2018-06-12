@@ -80,6 +80,13 @@ def partition(ds,
         percs=np.linspace(50,100,11),CSWIlims=np.array([-1]),
         n_jobs=1,RFmod_vars=['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI'],
         RandomForestRegressor_kwargs={'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False}):
+        
+    Default_RandomForestRegressor_kwargs = {'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False}
+    
+    for key in Default_RandomForestRegressor_kwargs.keys():
+        if key not in RandomForestRegressor_kwargs.keys():
+            RandomForestRegressor_kwargs[key] = Default_RandomForestRegressor_kwargs[key]
+    
     RFxs=[ds[x].values for x in RFmod_vars]
     RFxs=np.matrix(RFxs).T
     RFxs[np.isnan(RFxs)]=-9999
