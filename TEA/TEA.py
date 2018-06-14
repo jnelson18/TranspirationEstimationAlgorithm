@@ -78,10 +78,10 @@ def RFPercentilePrediction(Forest,trainRFxs,trainRFy,predRFxs,pcts=[5,50,95],n_j
 
 def partition(ds,
         percs=np.linspace(50,100,11),CSWIlims=np.array([-1]),
-        n_jobs=1,RFmod_vars=['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI'],
+        RFmod_vars=['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI'],
         RandomForestRegressor_kwargs={'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False, 'n_jobs':1}):
         
-    Default_RandomForestRegressor_kwargs = {'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False, 'n_jobs'=1}
+    Default_RandomForestRegressor_kwargs = {'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False, 'n_jobs':1}
     
     for key in Default_RandomForestRegressor_kwargs.keys():
         if key not in RandomForestRegressor_kwargs.keys():
@@ -132,7 +132,7 @@ def partition(ds,
             ds['TEA_WUE'][:,:,l][ds['nanflag'].values]=RFPercentilePrediction(Forest,RFxs[CurFlag],
                                                                 ds.inst_WUE.values[CurFlag],
                                                                 RFxs[ds['nanflag'].values],
-                                                                ds.percentiles.values,n_jobs=n_jobs)#.flatten()
+                                                                ds.percentiles.values,n_jobs=RandomForestRegressor_kwargs['n_jobs'])#.flatten()
 
             ds['TEA_T'][:,:,l]=ds.GPP/(ds['TEA_WUE'][:,:,l]*(1000/(12*1800)))
             ds['TEA_E'][:,:,l]=ds.ET-ds['TEA_T'][:,:,l]
