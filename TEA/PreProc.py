@@ -242,7 +242,7 @@ def umolC_per_s_to_gC_per_d(GPP):
     GPPnew=GPP*12.011 # ug per umol
     GPPnew=GPPnew/1000000 # ug to g
     GPPnew=GPPnew*1800 # s per hh
-    GPPday=np.sum(GPP.reshape(-1,48),axis=1)
+    GPPday=np.sum(GPPnew.reshape(-1,48),axis=1)
     return(GPPday)
 
 def GPPgrad(GPP):
