@@ -215,7 +215,7 @@ def GPPFlag(GPP):
     bool array
         GPPFlag
     '''
-    GPPdaymin=1
+    GPPdaymin=0.5
     GPPmin=0.05
     GPPFlag=np.repeat((umolC_per_s_to_gC_per_d(GPP)>GPPdaymin),48)
     GPPFlag=GPPFlag*(GPP>GPPmin)

@@ -89,7 +89,7 @@ def partition(ds,
     
     RFxs=[ds[x].values for x in RFmod_vars]
     RFxs=np.matrix(RFxs).T
-    RFxs[np.isnan(RFxs)]=-9999
+    RFxs[RFxs==-9999]=np.nan
 
     ds['Baseflag']=ds.DayNightFlag & ds.qualityFlag & ds.seasonFlag & ds.posFlag
     ds.attrs['features']=','.join(RFmod_vars)
@@ -97,7 +97,7 @@ def partition(ds,
     ds.coords['percentiles']=percs
     ds.coords['CSWIlims']=CSWIlims
     ds.coords['RFmod_vars']=RFmod_vars
-    ds['nanflag']=(('timestamp'),((~np.isnan(ds.ET)) & (~np.isnan(ds.GPP))).astype(bool))
+    ds['nanflag']=(('timestamp'),(np.isfinite(ds.ET.values) & np.isfinite(ds.GPP.values)).astype(bool))
     
     ds['TEA_WUE']=(('timestamp','percentiles','CSWIlims'),np.zeros((ds.timestamp.size,percs.size,CSWIlims.size))-9999)
     ds['TEA_T']=(('timestamp','percentiles','CSWIlims'),np.zeros((ds.timestamp.size,percs.size,CSWIlims.size))-9999)
@@ -109,8 +109,8 @@ def partition(ds,
     ds['oob_scores']=(('CSWIlims'),np.zeros((CSWIlims.size))-9999)
 
     for var in RFmod_vars:
-        ds['nanflag'][np.isnan(ds[var])] = np.nan 
-        ds['nanflag'][ds[var]<-9000] = np.nan
+        ds['nanflag'][np.isnan(ds[var])] = False
+        ds['nanflag'][ds[var]<-9000] = False
     
     if RandomForestRegressor_kwargs['max_features']=='n/3':
         RandomForestRegressor_kwargs['max_features']=int(np.ceil(len(RFmod_vars)/3))
