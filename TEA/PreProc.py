@@ -415,7 +415,7 @@ def preprocess(ds):
     # calculate the daily smoothed Rg_pot gradient, which gives an indication of time of year (spring/summer)
     try:
         ds['Rgpotgrad']=(('timestamp'),np.gradient(ds.Rg_pot))
-        ds['Rgpotgrad_day']=(('timestamp'),np.repeat(np.gradient(ds.Rg_pot.resample('D',how='mean',dim='timestamp')),48))
+        ds['Rgpotgrad_day']=(('timestamp'),np.repeat(np.gradient(ds.Rg_pot.values.reshape(-1,48).mean(axis=1) ),48))
     except ValueError:
         ds['Rgpotgrad']=(('timestamp'),np.ones(ds.ET.size)*np.nan)
         ds['Rgpotgrad_day']=(('timestamp'),np.ones(ds.ET.size)*np.nan)
