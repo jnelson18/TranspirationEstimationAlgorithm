@@ -91,7 +91,6 @@ def partition(ds,
     RFxs=np.matrix(RFxs).T
     RFxs[RFxs==-9999]=np.nan
 
-    ds['Baseflag']=ds.DayNightFlag & ds.qualityFlag & ds.seasonFlag & ds.posFlag
     ds.attrs['features']=','.join(RFmod_vars)
     
     ds.coords['percentiles']=percs
@@ -111,6 +110,8 @@ def partition(ds,
     for var in RFmod_vars:
         ds['nanflag'][np.isnan(ds[var])] = False
         ds['nanflag'][ds[var]<-9000] = False
+        
+    ds['Baseflag']=ds.DayNightFlag & ds.qualityFlag & ds.seasonFlag & ds.posFlag & ds.nanflag
     
     if RandomForestRegressor_kwargs['max_features']=='n/3':
         RandomForestRegressor_kwargs['max_features']=int(np.ceil(len(RFmod_vars)/3))
