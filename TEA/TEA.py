@@ -142,6 +142,10 @@ def partition(ds,
             ds['TEA_E'] = ds['TEA_E'].assign_attrs({'long name':'TEA evaporation','Units':'mm hh-1'})
             ds['TEA_WUE'] = ds['TEA_WUE'].assign_attrs({'long name':'TEA water use efficiency','Units':'g C per kg H2O'})
     
+    ds['TEA_T'][ds['TEA_WUE']==-9999] = np.nan
+    ds['TEA_E'][ds['TEA_WUE']==-9999] = np.nan
+    ds['TEA_WUE'][ds['TEA_WUE']==-9999] = np.nan
+    
     ds.attrs['PartRunTimestamp']=datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
     try:
         ds.attrs['PartType']=os.path.basename(__file__)
