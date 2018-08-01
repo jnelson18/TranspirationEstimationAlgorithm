@@ -492,7 +492,6 @@ def simplePartition(timestamp, ET, GPP, RH, Rg, Rg_pot, Tair, VPD, precip, u):
             'Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI']
     ds=partition(ds,
            percs=np.array([75]),
-           n_jobs=1,
            CSWIlims=np.array([-0.5]),
            RFmod_vars=RFmod_vars
            )
