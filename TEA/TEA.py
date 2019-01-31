@@ -130,9 +130,10 @@ def partition(ds,
             for j in range(len(RFmod_vars)):
                 ds.feature_importances.sel(RFmod_vars=RFmod_vars[j])[l]=Forest.feature_importances_[j]
 
-            ds['TEA_WUE'][:,:,l][ds['nanflag'].values]=RFPercentilePrediction(Forest,RFxs[CurFlag],
+            ds['TEA_WUE'][:,:,l][~ds['DayNightFlag'].values] = 0
+            ds['TEA_WUE'][:,:,l][ds['nanflag'].values & ds['DayNightFlag'].values]=RFPercentilePrediction(Forest,RFxs[CurFlag],
                                                                 ds.inst_WUE.values[CurFlag],
-                                                                RFxs[ds['nanflag'].values],
+                                                                RFxs[ds['nanflag'].values & ds['DayNightFlag'].values],
                                                                 ds.percentiles.values,n_jobs=RandomForestRegressor_kwargs['n_jobs'])#.flatten()
 
             ds['TEA_T'][:,:,l]=ds.GPP/(ds['TEA_WUE'][:,:,l]*(1000/(12*1800)))
