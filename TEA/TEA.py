@@ -137,6 +137,7 @@ def partition(ds,
                                                                 ds.percentiles.values,n_jobs=RandomForestRegressor_kwargs['n_jobs'])#.flatten()
 
             ds['TEA_T'][:,:,l]=ds.GPP/(ds['TEA_WUE'][:,:,l]*(1000/(12*1800)))
+            ds['TEA_T'][:,:,l][~ds['DayNightFlag'].values] = 0
             ds['TEA_E'][:,:,l]=ds.ET-ds['TEA_T'][:,:,l]
             
             ds['TEA_T'] = ds['TEA_T'].assign_attrs({'long name':'TEA transpiration','Units':'mm hh-1'})
