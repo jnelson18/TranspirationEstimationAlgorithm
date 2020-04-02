@@ -1,7 +1,6 @@
-name: tea_test
+name: tea
 channels:
   - jnelson18
-  - defaults
   - conda-forge
 dependencies:
   - _libgcc_mutex=0.1=main
@@ -128,5 +127,4 @@ dependencies:
   - zeromq=4.3.2=he1b5a44_2
   - zipp=3.1.0=py_0
   - zlib=1.2.11=h7b6447c_3
-prefix: /home/jnelson/miniconda3/envs/tea_test
 
