@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # # TEA algorithm brief tutorial
@@ -152,11 +152,19 @@ start=time()
 RFmod_vars=['Rg','Tair','RH','u','Rg_pot_daily',
         'Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI']
 
+RandomForestRegressor_kwargs={
+    'n_estimators'  : 100,
+    'oob_score'     : True,
+    'max_features'  : "n/3",
+    'verbose'       : 0,
+    'warm_start'    : False,
+    'n_jobs'        : 1}
+
 ds=partition(ds,
        percs=np.linspace(50,100,11),
-       n_jobs=1,
        CSWIlims=np.array([-0.5]),
-       RFmod_vars=RFmod_vars
+       RFmod_vars=RFmod_vars,
+       RandomForestRegressor_kwargs=RandomForestRegressor_kwargs       
        )
 
 print('{0:0.3} minutes to process'.format((time()-start)/60))
@@ -178,14 +186,14 @@ print(ds)
 import matplotlib.pyplot as pl
 get_ipython().run_line_magic('matplotlib', 'inline')
 f, ax = pl.subplots(figsize=(12,8))
-ds.ET_T.resample('D',how='sum',dim='timestamp').plot(ax=ax,label='model_T')
-ds.TEA_T.sel(CSWIlims=-0.5,percentiles=75).resample('D',how='sum',dim='timestamp').plot(ax=ax, label='TEA_T')
+ds.ET_T.resample(timestamp="D").sum('timestamp').plot(ax=ax,label='model_T')
+ds.TEA_T.sel(CSWIlims=-0.5,percentiles=75).resample(timestamp="D").sum('timestamp').plot(ax=ax, label='TEA_T')
 ax.legend(loc='upper left',frameon=False)
 
 
 # Note that the function simplePartition is a simplified and streamlined version of this process:
 
-# In[14]:
+# In[17]:
 
 
 from TEA.PreProc import simplePartition
@@ -193,7 +201,7 @@ from TEA.PreProc import simplePartition
 TEA_T,TEA_E,TEA_WUE = simplePartition(timestamp, ET, GPP, RH, Rg, Rg_pot, Tair, VPD, precip, u)
 
 
-# In[15]:
+# In[18]:
 
 
 print(TEA_T)
@@ -201,11 +209,17 @@ print(TEA_E)
 print(TEA_WUE)
 
 
-# In[16]:
+# In[19]:
 
 
 f, ax = pl.subplots(figsize=(12,8))
-ax.plot(TEA_T.values.reshape(-1,48).sum(axis=1), label='TEA_T')
-ax.plot(TEA_E.values.reshape(-1,48).sum(axis=1), label='TEA_E')
+ax.plot(TEA_T.reshape(-1,48).sum(axis=1), label='TEA_T')
+ax.plot(TEA_E.reshape(-1,48).sum(axis=1), label='TEA_E')
 ax.legend(loc='upper left',frameon=False)
+
+
+# In[ ]:
+
+
+
 

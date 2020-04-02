@@ -80,6 +80,36 @@ def partition(ds,
         percs=np.linspace(50,100,11),CSWIlims=np.array([-1]),
         RFmod_vars=['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI'],
         RandomForestRegressor_kwargs={'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False, 'n_jobs':1}):
+    """partition(ds,
+        percs=np.linspace(50,100,11), CSWIlims=np.array([-1]),
+        RFmod_vars=['Rg','Tair','RH','u','Rg_pot_daily','Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI'],
+        RandomForestRegressor_kwargs={'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False, 'n_jobs':1})
+
+    Runs TEA partitioning
+
+    The function for running the TEA partitioning given a preprocessed dataset (ds), the predictor variables (RFmod_vars), and the Random Forest configuration variables (RandomForestRegressor_kwargs).
+
+
+    Parameters
+    ----------
+    ds : xarray Dataset 
+        Output from the preprocess function
+    percs : numpy array
+        The percentiles to output. Generally the 75th percentile is used. e.g. np.array([75])
+    CSWIlims : numpy array
+        The limits to use for the CSWI filter. Generally -1 is used. e.g. np.array([-1])
+    RFmod_vars : list of strings
+        A list of stings refering to the variables to be used as predictors (X) in the random forest regressor.
+    RandomForestRegressor_kwargs : dict
+        Arguments to be passed on to the RandomForestRegressor. Defaults are: {'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False, 'n_jobs':1}.
+        See https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html
+
+
+     Returns
+    -------
+    xarray Dataset 
+        The resulting partitioned dataset.
+    """
         
     Default_RandomForestRegressor_kwargs = {'n_estimators':100, 'oob_score':True, 'max_features':"n/3", 'verbose':0, 'warm_start':False, 'n_jobs':1}
     
