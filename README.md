@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/121650199.svg)](https://zenodo.org/badge/latestdoi/121650199)
+
 # TranspirationEstimationAlgorithm
 A method of estimating transpiration directly from carbon, water, and energy fluxes, such as eddy covariance datasets.
 
