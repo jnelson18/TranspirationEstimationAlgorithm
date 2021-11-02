@@ -427,7 +427,7 @@ def preprocess(ds,nStepsPerDay=48):
     # calcualte all flags used to build the training dataset
     def flags(ds):
         ds['DayNightFlag']=(ds['Rg_pot']>0)
-        ds['posFlag']=(('timestamp'),(ds.GPP>0) & (ds.ET>0))
+        ds['posFlag']=(('timestamp'),(ds.GPP.values>0) & (ds.ET.values>0))
         ds['tempFlag']=(('timestamp'),tempFlag(ds.Tair.values))
         ds['GPPFlag']=(('timestamp'),GPPFlag(ds.GPP.values,nStepsPerDay))
         ds['seasonFlag']=(('timestamp'),ds.tempFlag.values*ds.GPPFlag.values)
