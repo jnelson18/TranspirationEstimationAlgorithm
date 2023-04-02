@@ -61,8 +61,8 @@ def RFPercentilePrediction(Forest,trainRFxs,trainRFy,predRFxs,pcts=[5,50,95],n_j
 
 
     for i in range(ntrees):
-        TreeNodeIDXTrain[:,i]=Forest.estimators_[i].apply(trainRFxs)
-        TreeNodeIDXPred[:,i]=Forest.estimators_[i].apply(predRFxs)
+        TreeNodeIDXTrain[:,i]=Forest.estimators_[i].apply(np.asarray(trainRFxs))
+        TreeNodeIDXPred[:,i]=Forest.estimators_[i].apply(np.asarray(predRFxs))
 
     ypred_pcts=np.ones([npred,len(pcts)])*np.nan
 
@@ -153,7 +153,7 @@ def partition(ds,
         
         if CurFlag.sum()>240:
             Forest=RandomForestRegressor(**RandomForestRegressor_kwargs)
-            Forest.fit(RFxs[CurFlag],ds.inst_WUE.values[CurFlag])
+            Forest.fit(np.asarray(RFxs[CurFlag]),ds.inst_WUE.values[CurFlag])
     
             ds['oob_scores'][l]=Forest.oob_score_
 
