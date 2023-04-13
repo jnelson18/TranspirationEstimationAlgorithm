@@ -8,73 +8,8 @@ Created on Mon May 29 15:54:06 2017
 import numpy as np
 import os
 import datetime
-import multiprocessing as mp
-
-from sklearn.ensemble import RandomForestRegressor
-
-class RFP:
-    def __init__(self, trainRFy, TreeNodeIDXTrain,TreeNodeIDXPred,pcts):
-        self.trainRFy=trainRFy
-        self.TreeNodeIDXTrain=TreeNodeIDXTrain
-        self.TreeNodeIDXPred=TreeNodeIDXPred
-        self.pcts=pcts
-    def Calc_pcts(self,i):
-        return(np.percentile(self.trainRFy[np.where(self.TreeNodeIDXTrain==self.TreeNodeIDXPred[i,:])[0]],self.pcts))
-
-
-def RFPercentilePrediction(Forest,trainRFxs,trainRFy,predRFxs,pcts=[5,50,95],n_jobs=1,maxtasksperchild=500):
-    """RFQuantilePrediction(Forest,trainRFxs,trainRFy,predRFxs,pcts=[5,50,95])
-
-    Random Forest Percentile Prediction
-
-    Fits a slope between x and y individually with an intercept of zero, then takes the geometric mean of the slopes.
-
-
-    Parameters
-    ----------
-    Forest : class 'sklearn.ensemble.forest.RandomForestRegressor'
-        Fitted random forest regressor from sklearn
-    trainRFxs : numpy array
-        The x dataset used to fit Forest
-    trainRFy : numpy array
-        The y dataset used to fit Forest
-    predRFxs : numpy array
-        The x dataset to get the percentile prediction
-    pcts : list or list like
-        The percentiles to output, defaults are the 5th, 50th, and 95th percentiles
-    n_jobs:
-        Passed to multiprocessing.Pool number of processors to use.
-    maxtasksperchild : integer
-        Passed to multiprocessing.Pool job tasts to complete before being cleaned, to save memory.
-
-     Returns
-    -------
-    numpy ndarray
-        The resulting percentile prediction shaped [npred,npcts]
-    """
-
-    ntrees=Forest.n_estimators
-    n=trainRFy.shape[0]
-    TreeNodeIDXTrain=np.zeros([n,ntrees])
-    npred=predRFxs.shape[0]
-    TreeNodeIDXPred=np.zeros([npred,ntrees])
-
-
-    for i in range(ntrees):
-        TreeNodeIDXTrain[:,i]=Forest.estimators_[i].apply(trainRFxs)
-        TreeNodeIDXPred[:,i]=Forest.estimators_[i].apply(predRFxs)
-
-    ypred_pcts=np.ones([npred,len(pcts)])*np.nan
-
-    c=RFP(trainRFy, TreeNodeIDXTrain,TreeNodeIDXPred,pcts)
-
-    if n_jobs>1:
-        with mp.Pool(processes=n_jobs,maxtasksperchild=maxtasksperchild) as p:
-            ypred_pcts=np.array(list(p.map(c.Calc_pcts, range(npred))))
-    else:
-        ypred_pcts=np.array(list(map(c.Calc_pcts, range(npred))))
-
-    return(ypred_pcts)
+from pyquantrf import QuantileRandomForestRegressor
+from TEA.PreProc import build_dataset, preprocess
 
 def partition(ds,
         percs=np.linspace(50,100,11),CSWIlims=np.array([-1]),
@@ -117,9 +52,9 @@ def partition(ds,
         if key not in RandomForestRegressor_kwargs.keys():
             RandomForestRegressor_kwargs[key] = Default_RandomForestRegressor_kwargs[key]
     
-    RFxs=[ds[x].values for x in RFmod_vars]
-    RFxs=np.matrix(RFxs).T
-    RFxs[RFxs==-9999]=np.nan
+    RFxs = [ds[x].values for x in RFmod_vars]
+    RFxs = np.asarray(RFxs).T
+    RFxs[RFxs==-9999] = np.nan
 
     ds.attrs['features']=','.join(RFmod_vars)
     
@@ -152,19 +87,18 @@ def partition(ds,
         ds['NumForestPoints'][l]=CurFlag.sum()
         
         if CurFlag.sum()>240:
-            Forest=RandomForestRegressor(**RandomForestRegressor_kwargs)
-            Forest.fit(RFxs[CurFlag],ds.inst_WUE.values[CurFlag])
+            qrf = QuantileRandomForestRegressor(nthreads = RandomForestRegressor_kwargs["n_jobs"],
+                                    **RandomForestRegressor_kwargs)
+            qrf.fit(RFxs[CurFlag],ds.inst_WUE.values[CurFlag])
     
-            ds['oob_scores'][l]=Forest.oob_score_
+            if RandomForestRegressor_kwargs["oob_score"]:
+                ds['oob_scores'][l] = qrf.forest.oob_score_
 
             for j in range(len(RFmod_vars)):
-                ds.feature_importances.sel(RFmod_vars=RFmod_vars[j])[l]=Forest.feature_importances_[j]
+                ds.feature_importances.sel(RFmod_vars=RFmod_vars[j])[l] = qrf.forest.feature_importances_[j]
 
             ds['TEA_WUE'][:,:,l][~ds['DayNightFlag'].values] = 0
-            ds['TEA_WUE'][:,:,l][ds['nanflag'].values & ds['DayNightFlag'].values]=RFPercentilePrediction(Forest,RFxs[CurFlag],
-                                                                ds.inst_WUE.values[CurFlag],
-                                                                RFxs[ds['nanflag'].values & ds['DayNightFlag'].values],
-                                                                ds.percentiles.values,n_jobs=RandomForestRegressor_kwargs['n_jobs'])#.flatten()
+            ds['TEA_WUE'][:,:,l][ds['nanflag'].values & ds['DayNightFlag'].values]= qrf.predict(RFxs[ds['nanflag'].values & ds['DayNightFlag'].values], percs/100)
 
             ds['TEA_T'][:,:,l]=ds.GPP/(ds['TEA_WUE'][:,:,l]*(1000/(12*1800)))
             ds['TEA_T'][:,:,l][~ds['DayNightFlag'].values] = 0
@@ -184,3 +118,58 @@ def partition(ds,
     except NameError:
         ds.attrs['PartType']='manual'
     return(ds)
+
+
+def simplePartition(timestamp, ET, GPP, RH, Rg, Rg_pot, Tair, VPD, precip, u, qualityFlag=None):
+    '''simplePartition(ds)
+
+    Performs a basic partitioning using default parameters with basic inputs.
+
+
+    Parameters
+    ----------
+    timestamp : datetime64[ns] array
+        timestamp of all variables in
+    ET: list or list like
+        evapotranspiration (mm hh-1)
+    GPP: list or list like
+        gross primary productivity (umol m-2 s-1)
+    Tair: list or list like
+        air temperature (deg C)
+    RH: list or list like
+        relative humidity (%)
+    VPD: list or list like
+        vapor pressure deficit (hPa)
+    precip: list or list like
+        precipitation (mm hh-1)
+    Rg: list or list like
+        incoming shortwave radiation (W m-2)
+    Rg_pot: list or list like
+        potential incoming shortwave radiation (W m-2)
+    u: list or list like
+        wind speed (m s-1)
+    OtherVars: dictionary
+        dictionary of other variables to include in dataset (optional)
+     Returns
+    -------
+    TEA_T: array
+        transpiration from TEA
+    TEA_E: array
+        evaporation from TEA
+    TEA_WUE: array
+        water use efficiency from TEA
+    '''
+    ds   = build_dataset(timestamp, ET, GPP, RH, Rg, Rg_pot, Tair, VPD, precip, u, qualityFlag=qualityFlag)
+    ds   = preprocess(ds)
+
+    RFmod_vars=['Rg','Tair','RH','u','Rg_pot_daily',
+            'Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI']
+    ds=partition(ds,
+           percs=np.array([75]),
+           CSWIlims=np.array([-0.5]),
+           RFmod_vars=RFmod_vars
+           )
+    TEA_T   = ds.TEA_T.values.ravel()
+    TEA_E   = ds.TEA_E.values.ravel()
+    TEA_WUE = ds.TEA_WUE.values.ravel()
+    return(TEA_T,TEA_E,TEA_WUE)

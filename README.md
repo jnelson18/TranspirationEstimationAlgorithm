@@ -1,6 +1,11 @@
 [![DOI](https://zenodo.org/badge/121650199.svg)](https://zenodo.org/badge/latestdoi/121650199)
 
+Further information and tutorials are available in the companion repository here:
+
+https://github.com/jnelson18/ecosystem-transpiration
+
 # TranspirationEstimationAlgorithm
+
 A method of estimating transpiration directly from carbon, water, and energy fluxes, such as eddy covariance datasets.
 
 For a brief introduction of how to use the code, please see the tutorial [here](tutorial.ipynb).
@@ -14,8 +19,7 @@ Nelson, Jacob A., Nuno Carvalhais, Matthias Cuntz, Nicolas Delpierre, Jürgen K
 Requirements:
 - numpy
 - scipy
-- xarray
-- scikit-learn
+- pyquantrf
 
 Can be installed via anaconda:
 

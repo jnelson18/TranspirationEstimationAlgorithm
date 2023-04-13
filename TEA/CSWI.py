@@ -30,29 +30,29 @@ def CSWI(precip,ET,s0=5):
         The modified water balance
     '''
     # insure that datasets are one dimensional
-    precip=precip.reshape(-1)
-    ET=ET.reshape(-1)
+    precip = precip.reshape(-1).copy()
+    ET     = ET.reshape(-1).copy()
     # extract the data in case that precip has an associated mask
-    precipcalc=np.ma.getdata(precip)
+    precipcalc = np.ma.getdata(precip)
 
     # in case of an associated mask, fill all gap values with the maximum water storage
     if np.ma.is_masked(precip):
-        precipcalc[np.ma.getmask(precip)]=s0
+        precipcalc[np.ma.getmask(precip)] = s0
     else:
     # in case of any negative values in precipitation fill with the maximum water storage
-        precipcalc[(precip<0)]=s0
+        precipcalc[(precip<0)] = s0
     # fill any other missing values with the maximum water storage
-    precipcalc[np.isnan(precip)]=s0
-    precipcalc[np.isinf(precip)]=s0
+    precipcalc[np.isnan(precip)] = s0
+    precipcalc[np.isinf(precip)] = s0
 
     # create an array of zeros the same shape as the precipitation data to hold the CSWI
-    CSWI=np.zeros(precip.shape)
+    CSWI = np.zeros(precip.shape)
     # set the initial value of CSWI to the max storage capacity
-    CSWI[0]=s0
+    CSWI[0] = s0
 
     # set any missing values in ET data to a number
-    ET[np.isnan(ET)]=-9999
-    ET[np.isinf(ET)]=-9999
+    ET[np.isnan(ET)] = -9999
+    ET[np.isinf(ET)] = -9999
 
     # loop through each timestep, skipping the inital condition
     for j in range(precip.shape[0]-1):

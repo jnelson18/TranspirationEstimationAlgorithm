@@ -196,7 +196,7 @@ ax.legend(loc='upper left',frameon=False)
 # In[17]:
 
 
-from TEA.PreProc import simplePartition
+from TEA import simplePartition
 
 TEA_T,TEA_E,TEA_WUE = simplePartition(timestamp, ET, GPP, RH, Rg, Rg_pot, Tair, VPD, precip, u)
 

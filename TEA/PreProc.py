@@ -7,172 +7,13 @@ Created on Fri Feb 23 15:28:46 2018
 
 import xarray as xr
 import numpy as np
-
+import warnings
 from scipy.ndimage.filters import gaussian_filter
-from scipy.optimize import fmin
-
-from sklearn.ensemble import RandomForestRegressor
 
 from TEA.CSWI import CSWI
 from TEA.DiurnalCentroid import DiurnalCentroid
 import TEA.DWCI as DWCI
-from TEA.TEA import partition
 
-def quantreg(x,y,PolyDeg=1,rho=0.95,weights=None):
-    '''quantreg(x,y,PolyDeg=1,rho=0.95)
-
-    Quantile regression
-
-    Fits a polynomial function (of degree PolyDeg) using quantile regression based on a percentile (rho).
-    Based on script by Dr. Phillip M. Feldman, and based on method by Koenker, Roger, and
-    Gilbert Bassett Jr. “Regression Quantiles.” Econometrica: Journal of
-    the Econometric Society, 1978, 33–50.
-
-
-    Parameters
-    ----------
-    x : list or list like
-        independent variable
-    y : list or list like
-        dependent variable
-    PolyDeg : int
-        The degree of the polynomial function
-    rho : float between 0-1
-        The percentile to fit to, must be between 0-1
-    weights : list or list like
-        Vector to weight each point, must be same size as x
-
-     Returns
-    -------
-    list
-        The resulting parameters in order of degree from low to high
-    '''
-    def model(x, beta):
-       """
-       This example defines the model as a polynomial, where the coefficients of the
-       polynomial are passed via `beta`.
-       """
-       if PolyDeg == 0:
-           return x*beta
-       else:
-           return np.polyval(x, beta)
-
-    N_coefficients=PolyDeg+1
-
-    def tilted_abs(rho, x, weights):
-       """
-       OVERVIEW
-
-       The tilted absolute value function is used in quantile regression.
-
-
-       INPUTS
-
-       rho: This parameter is a probability, and thus takes values between 0 and 1.
-
-       x: This parameter represents a value of the independent variable, and in
-       general takes any real value (float) or NumPy array of floats.
-       """
-
-       return weights * x * (rho - (x < 0))
-
-    def objective(beta, rho, weights):
-       """
-       The objective function to be minimized is the sum of the tilted absolute
-       values of the differences between the observations and the model.
-       """
-       return tilted_abs(rho, y - model(x, beta), weights).sum()
-
-    # Build weights if they don't exits:
-    if weights is None:
-        weights=np.ones(x.shape)
-
-    # Define starting point for optimization:
-    beta_0= np.zeros(N_coefficients)
-    if N_coefficients >= 2:
-       beta_0[1]= 1.0
-
-    # `beta_hat[i]` will store the parameter estimates for the quantile
-    # corresponding to `fractions[i]`:
-    beta_hat= []
-
-    #for i, fraction in enumerate(fractions):
-    beta_hat.append( fmin(objective, x0=beta_0, args=(rho,weights), xtol=1e-8,
-      disp=False, maxiter=3000) )
-    return(beta_hat)
-
-
-def QuantRegDetector(x,y,TrainingMask=None,strictness=3):
-    '''QuantRegDetector(x,y,TrainingMask=None,strictness=3)
-
-    quantile regression outlier detectior
-
-    Uses a mixture of quantile regression and quantiles of residuals to identify outliers in y with respect to x.
-
-
-    Parameters
-    ----------
-    x: list or list like
-        predictor variable
-    y: list or list like
-        response variable
-    TrainingMask: list or list like
-        boolean mask of data to ignore
-    strictness: integer
-        number of inter quartile ranges to use
-
-     Returns
-    -------
-    bool array
-        outliers detected
-    '''
-    x     = np.array(x)
-    y     = np.array(y)
-    index = np.arange(y.size)
-    if TrainingMask is None:
-        TrainingMask=np.ones(x.shape).astype(bool)
-
-    if np.any(np.isnan(x)):
-        raise RuntimeError("NaN values detected in x variable")
-    if np.any(np.isnan(y)):
-        raise RuntimeError("NaN values detected in y variable")
-
-    si75 = quantreg(x[TrainingMask],y[TrainingMask],PolyDeg=0,rho=0.75)[0]
-    si25 = quantreg(x[TrainingMask],y[TrainingMask],PolyDeg=0,rho=0.25)[0]
-    si50 = quantreg(x[TrainingMask],y[TrainingMask],PolyDeg=0,rho=0.5)[0]
-
-    Q75  = x*si75[0] #+si75[0]
-    Q25  = x*si25[0] #+si25[0]
-
-    IQrange      = np.subtract(Q75,Q25)
-    LowerBound   = Q25-strictness*IQrange #1.5
-    UpperBound   = Q75+strictness*IQrange #1.5
-    resid        = x*si50[0] - y
-    IQresid       = np.diff(np.percentile(resid,[25,75]))
-    Lowerresid   = x*si50[0]-strictness*IQresid #1.5
-    Upperresid   = x*si50[0]+strictness*IQresid #1.5
-    Outliers     = ~np.logical_or(np.logical_and(y<=UpperBound,y>=LowerBound),np.logical_and(resid<=Upperresid,resid>=Lowerresid))
-    return(~Outliers)
-
-def outlierCorrection(ds, n_jobs=1):
-    for percentile in ds.percentiles:
-        for CSWIlim in ds.CSWIlims:
-            T        = ds['TEA_T'].sel(percentiles=percentile,CSWIlims=CSWIlim).values
-            nanMask  = ~np.isnan(T) & ~np.isnan(ds.Rg.values)
-            xVars    = ds.features.split(',')
-            for var in xVars:
-                nanMask[np.isnan(ds[var])] = False
-                nanMask[ds[var]<-9000] = False
-            RFxs     = np.asanyarray([ds[v].values for v in xVars])
-            RFxs     = np.matrix(RFxs).T
-            Outliers = QuantRegDetector(ds.Rg.values,T,TrainingMask=nanMask)
-            if np.all(Outliers):
-                continue
-            else:
-                Forest   = RandomForestRegressor(n_estimators=100, oob_score=True, n_jobs=n_jobs, verbose=0, warm_start=False)
-                Forest.fit(RFxs[Outliers & nanMask],T[Outliers & nanMask])
-                T[~Outliers & nanMask] = Forest.predict(RFxs[~Outliers & nanMask])
-                ds['TEA_T'].sel(percentiles=percentile,CSWIlims=CSWIlim).values=T
 
 def tempFlag(Tair):
     '''tempFlag(Tair)
@@ -272,7 +113,7 @@ def GPPgrad(GPP,nStepsPerDay):
     GPPgrad[0]=0
     return(GPPgrad)
 
-def build_dataset(timestamp, ET, GPP, RH, Rg, Rg_pot, Tair, VPD, precip, u, OtherVars=None):
+def build_dataset(timestamp, ET, GPP, RH, Rg, Rg_pot, Tair, VPD, precip, u, qualityFlag=None, OtherVars=None):
     """build_dataset(timestamp, ET, GPP, RH, Rg, Rg_pot, Tair, VPD, precip, u, OtherVars=None)
 
     build dataset for partitioning
@@ -337,6 +178,8 @@ def build_dataset(timestamp, ET, GPP, RH, Rg, Rg_pot, Tair, VPD, precip, u, Othe
 
     CoreVars = {'ET':ET, 'GPP':GPP, 'RH':RH, 'Rg':Rg,
                 'Rg_pot':Rg_pot, 'Tair':Tair, 'VPD':VPD, 'precip':precip, 'u':u}
+    if qualityFlag is not None:
+        CoreVars['qualityFlag'] = qualityFlag
     InputDic = {}
     for var in CoreVars:
         InputDic[var] = (['timestamp'], CoreVars[var])
@@ -443,61 +286,10 @@ def preprocess(ds,nStepsPerDay=48):
     # builds a quality flag if none is supplied. quality flag should remove all values not
     # to be used in the training dataset, such as when GPP or ET values are gap filled.
     if 'qualityFlag' not in list(ds.variables):
+        warnings.warn("No `qualityFlag` found in the dataset, all data will be assumed to be high quality. Good practice would be to use both the quality flags for NEE and LE to designate good quality data points.")
         ds['qualityFlag'] = (('timestamp'),np.ones(ds.ET.size).astype(bool))
     ds = flags(ds)
 
     return(ds)
 
-def simplePartition(timestamp, ET, GPP, RH, Rg, Rg_pot, Tair, VPD, precip, u):
-    '''simplePartition(ds)
 
-    Performs a basic partitioning using default parameters with basic inputs.
-
-
-    Parameters
-    ----------
-    timestamp : datetime64[ns] array
-        timestamp of all variables in
-    ET: list or list like
-        evapotranspiration (mm hh-1)
-    GPP: list or list like
-        gross primary productivity (umol m-2 s-1)
-    Tair: list or list like
-        air temperature (deg C)
-    RH: list or list like
-        relative humidity (%)
-    VPD: list or list like
-        vapor pressure deficit (hPa)
-    precip: list or list like
-        precipitation (mm hh-1)
-    Rg: list or list like
-        incoming shortwave radiation (W m-2)
-    Rg_pot: list or list like
-        potential incoming shortwave radiation (W m-2)
-    u: list or list like
-        wind speed (m s-1)
-    OtherVars: dictionary
-        dictionary of other variables to include in dataset (optional)
-     Returns
-    -------
-    TEA_T: array
-        transpiration from TEA
-    TEA_E: array
-        evaporation from TEA
-    TEA_WUE: array
-        water use efficiency from TEA
-    '''
-    ds   = build_dataset(timestamp, ET, GPP, RH, Rg, Rg_pot, Tair, VPD, precip, u)
-    ds   = preprocess(ds)
-
-    RFmod_vars=['Rg','Tair','RH','u','Rg_pot_daily',
-            'Rgpotgrad','year','GPPgrad','DWCI','C_Rg_ET','CSWI']
-    ds=partition(ds,
-           percs=np.array([75]),
-           CSWIlims=np.array([-0.5]),
-           RFmod_vars=RFmod_vars
-           )
-    TEA_T   = ds.TEA_T.values.ravel()
-    TEA_E   = ds.TEA_E.values.ravel()
-    TEA_WUE = ds.TEA_WUE.values.ravel()
-    return(TEA_T,TEA_E,TEA_WUE)

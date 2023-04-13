@@ -21,14 +21,14 @@ def daily_corr(x, y, Rg_pot,nStepsPerDay):
     array
         correlation coefficents at daily timescale
     '''
-    x=x.reshape(-1,nStepsPerDay)
-    y=y.reshape(-1,nStepsPerDay)
-    Rg_pot=Rg_pot.reshape(-1,nStepsPerDay)
-    mask=Rg_pot<=0
-    x=np.ma.MaskedArray(x,mask=mask)
-    y=np.ma.MaskedArray(y,mask=mask)
-    x=x/x.max(axis=1)[:,None]
-    y=y/y.max(axis=1)[:,None]
+    x = x.reshape(-1,nStepsPerDay)
+    y = y.reshape(-1,nStepsPerDay)
+    Rg_pot = Rg_pot.reshape(-1,nStepsPerDay)
+    mask = Rg_pot<=0
+    x = np.ma.MaskedArray(x,mask=mask)
+    y = np.ma.MaskedArray(y,mask=mask)
+    x = x/x.max(axis=1)[:,None]
+    y = y/y.max(axis=1)[:,None]
     mx = x.mean(axis=1)
     my = y.mean(axis=1)
     xm, ym = x - mx[..., None], y - my[..., None]
@@ -72,19 +72,19 @@ def DWCIcalcSimple(Rg_pot,ET,GPP,VPD,NEE,ET_sd,GPP_sd,nStepsPerDay):
     array
         The simplified diurnal water:carbon index (DWCI)
     '''
-    repeats=100
-    days=int(ET.size/nStepsPerDay)
-    StN=np.zeros([repeats,days])
+    repeats = 100
+    days = int(ET.size/nStepsPerDay)
+    StN = np.zeros([repeats,days])
     for rep in range(repeats):
-        GPP_noise=np.random.normal(scale=GPP_sd)
-        ET_noise=np.random.normal(scale=ET_sd)
-        GPP_DayCycle=(Rg_pot.reshape(-1,nStepsPerDay)*(GPP.reshape(-1,nStepsPerDay).mean(axis=1)/Rg_pot.reshape(-1,nStepsPerDay).mean(axis=1))[:,None]+GPP_noise.reshape(-1,nStepsPerDay)).reshape(-1)
-        ET_DayCycle=(Rg_pot.reshape(-1,nStepsPerDay)*(ET.reshape(-1,nStepsPerDay).mean(axis=1)/Rg_pot.reshape(-1,nStepsPerDay).mean(axis=1))[:,None]+ET_noise.reshape(-1,nStepsPerDay)).reshape(-1)
+        GPP_noise = np.random.normal(scale=GPP_sd)
+        ET_noise = np.random.normal(scale=ET_sd)
+        GPP_DayCycle = (Rg_pot.reshape(-1,nStepsPerDay)*(GPP.reshape(-1,nStepsPerDay).mean(axis=1)/Rg_pot.reshape(-1,nStepsPerDay).mean(axis=1))[:,None]+GPP_noise.reshape(-1,nStepsPerDay)).reshape(-1)
+        ET_DayCycle = (Rg_pot.reshape(-1,nStepsPerDay)*(ET.reshape(-1,nStepsPerDay).mean(axis=1)/Rg_pot.reshape(-1,nStepsPerDay).mean(axis=1))[:,None]+ET_noise.reshape(-1,nStepsPerDay)).reshape(-1)
         StN[rep]=daily_corr(ET_DayCycle,GPP_DayCycle,Rg_pot,nStepsPerDay)
-    pwc=daily_corr(ET,GPP*np.sqrt(VPD),Rg_pot,nStepsPerDay)
+    pwc = daily_corr(ET,GPP*np.sqrt(VPD),Rg_pot,nStepsPerDay)
 
-    DWCI=(StN<np.tile(pwc,repeats).reshape(repeats,-1)).sum(axis=0)
-    DWCI[np.isnan(StN).prod(axis=0).astype(bool)]=-9999
+    DWCI = (StN<np.tile(pwc,repeats).reshape(repeats,-1)).sum(axis=0)
+    DWCI[np.isnan(StN).prod(axis=0).astype(bool)] = -9999
 
     return(DWCI)
 
@@ -123,26 +123,26 @@ def DWCIcalc(Rg_pot,ET,GPP,VPD,NEE,ET_sd,GPP_sd,NEE_fall,ET_fall):
     '''
 
     # reshape all variables as number of days by number of half hours
-    varList=[Rg_pot,ET,GPP,VPD,NEE,ET_sd,GPP_sd,NEE_fall,ET_fall]
+    varList = [Rg_pot,ET,GPP,VPD,NEE,ET_sd,GPP_sd,NEE_fall,ET_fall]
     for j in range(len(varList)):
-        varList[j]=varList[j].reshape(-1,nStepsPerDay)
-    Rg_pot,ET,GPP,VPD,NEE,ET_sd,GPP_sd,NEE_fall,ET_fall=varList
+        varList[j] = varList[j].reshape(-1,nStepsPerDay)
+    Rg_pot,ET,GPP,VPD,NEE,ET_sd,GPP_sd,NEE_fall,ET_fall = varList
     # the number of artificial datasets to construct
-    repeats=100
+    repeats = 100
     # the number of days in the timeseries. Assumes data is half hourly
-    days=int(ET.shape[0])
+    days = int(ET.shape[0])
     # creates an empty 2D dataset to hold the artificial distributions
-    StN=np.zeros([repeats,days])*np.nan
-    corrDev=np.zeros([days,2,2])#*np.nan
+    StN = np.zeros([repeats,days])*np.nan
+    corrDev = np.zeros([days,2,2])#*np.nan
 
     # create the daily cycle by dividing Rg_pot by the daily mean
-    daily_cycle=Rg_pot/Rg_pot.mean(axis=1)[:,None]
-    mean_GPP=GPP.mean(axis=1)
-    mean_ET=ET.mean(axis=1)
+    daily_cycle = Rg_pot/Rg_pot.mean(axis=1)[:,None]
+    mean_GPP = GPP.mean(axis=1)
+    mean_ET = ET.mean(axis=1)
 
     # Isolate the error of the carbon and water fluxes.
-    NEE_err=NEE_fall-NEE
-    ET_err=ET_fall-ET
+    NEE_err = NEE_fall-NEE
+    ET_err = ET_fall-ET
 
     # loops through each day to generate an artificial dataset and calculate the associate correlation
     for d in range(days):#days
@@ -175,13 +175,13 @@ def DWCIcalc(Rg_pot,ET,GPP,VPD,NEE,ET_sd,GPP_sd,NEE_fall,ET_fall):
             synET[:,i]  = daily_cycle[d,i]*mean_ET[d]+Noise[:,1]     # synthetic le
 
         # calculate the 100 artificial correlation coefficients for the day
-        StN[:,d]=daily_corr(synGPP, synET, np.tile(daily_cycle[d],100).reshape(-1,nStepsPerDay),nStepsPerDay)
+        StN[:,d] = daily_corr(synGPP, synET, np.tile(daily_cycle[d],100).reshape(-1,nStepsPerDay),nStepsPerDay)
 
     # calculate the real correlation array
-    pwc=daily_corr(ET,GPP*np.sqrt(VPD),Rg_pot,nStepsPerDay)
+    pwc = daily_corr(ET,GPP*np.sqrt(VPD),Rg_pot,nStepsPerDay)
 
     # calculate the rank of the real array within the artificial dataset giving DWCI
-    DWCI=(StN<np.tile(pwc,repeats).reshape(repeats,-1)).sum(axis=0)
+    DWCI = (StN<np.tile(pwc,repeats).reshape(repeats,-1)).sum(axis=0)
     DWCI[np.isnan(StN).prod(axis=0).astype(bool)]=-9999
 
     return(DWCI)

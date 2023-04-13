@@ -1,4 +1,4 @@
-from TEA.PreProc import simplePartition,preprocess,build_dataset
-from TEA.TEA import partition
+from TEA.PreProc import preprocess, build_dataset
+from TEA.TEA import partition, simplePartition
 
-__version__='v1.09'
+__version__='v1.10'

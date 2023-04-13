@@ -1,7 +1,7 @@
 # Uses the numpy package for matrix operations
 import numpy as np
 
-def DiurnalCentroid(flux,nStepsPerDay=48):
+def DiurnalCentroid(flux, nStepsPerDay=48):
     '''DiurnalCentroid(flux)
 
     Diurnal centroid of sub-daily fluxes
@@ -23,10 +23,10 @@ def DiurnalCentroid(flux,nStepsPerDay=48):
     '''
 
     # calculate the total number of days
-    days,UPD=flux.reshape(-1,nStepsPerDay).shape
+    days, UPD = flux.reshape(-1,nStepsPerDay).shape
     # create a 2D matrix providing a UPD time series for each day, used in the matrix operations.
-    hours=np.tile(np.arange(UPD),days).reshape(days,UPD)
+    hours = np.tile(np.arange(UPD), days).reshape(days, UPD)
     # calculate the diurnal centroid
-    C=np.sum(hours*flux.reshape(-1,nStepsPerDay),axis=1)/np.sum(flux.reshape(-1,nStepsPerDay),axis=1)
-    C=C*(24/nStepsPerDay)
+    C = np.sum(hours*flux.reshape(-1, nStepsPerDay), axis=1)/np.sum(flux.reshape(-1,nStepsPerDay), axis=1)
+    C = C*(24/nStepsPerDay)
     return(C)
